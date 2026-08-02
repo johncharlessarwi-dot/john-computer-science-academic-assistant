@@ -1,0 +1,6 @@
+{
+  "name": "John Computer Science Academic Assistant",
+  "description": "AI-powered Computer Science academic assistant and learning platform with RAG document intelligence, question generator, exam mode, flashcards, and personalized study tutoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
