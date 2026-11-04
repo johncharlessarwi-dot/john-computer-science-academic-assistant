@@ -10,6 +10,12 @@ export function chunkDocumentPages(
   targetChunkSize = 600,
   overlap = 100
 ): DocumentChunk[] {
+  if (!Number.isSafeInteger(targetChunkSize) || targetChunkSize < 32) {
+    throw new RangeError('targetChunkSize must be an integer of at least 32');
+  }
+  if (!Number.isSafeInteger(overlap) || overlap < 0 || overlap >= targetChunkSize) {
+    throw new RangeError('overlap must be a non-negative integer smaller than targetChunkSize');
+  }
   const chunks: DocumentChunk[] = [];
   let globalChunkIndex = 0;
 
