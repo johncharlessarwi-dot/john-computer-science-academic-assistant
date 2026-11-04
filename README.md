@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/readme/project-motion.svg" width="100%" alt="CS ACADEMIC ASSISTANT animated overview banner" />
+</div>
+
 # 🎓 John Computer Science Academic Assistant
 
 <p align="center">
