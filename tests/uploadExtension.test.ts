@@ -6,3 +6,4 @@ test('uploadExtension behavior', () => { assert.equal(supportedStudyDocument('no
 test('reject filename containing newline', () => { assert.equal(supportedStudyDocument('notes\n.pdf'), false); });
 test('reject filename containing NUL', () => { assert.equal(supportedStudyDocument('notes\0.pdf'), false); });
 test('reject query string suffix', () => { assert.equal(supportedStudyDocument('notes.pdf?download=1'), false); });
+test('accept jpeg learning images', () => { assert.equal(supportedStudyDocument('diagram.JPEG'), true); });
