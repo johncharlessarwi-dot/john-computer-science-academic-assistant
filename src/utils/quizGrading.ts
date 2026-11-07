@@ -1,4 +1,5 @@
 export function gradeExactAnswers(answers: string[], expected: string[]): {correct: number; total: number; percent: number} {
+  if (!Array.isArray(answers) || !Array.isArray(expected)) throw new TypeError('Answers must be arrays');
   const total = expected.length;
   const correct = expected.filter((item, i) => {
     const target = item.trim().toLowerCase();
