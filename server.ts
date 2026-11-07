@@ -289,7 +289,7 @@ app.post('/api/chat', async (req, res) => {
   const userId = (req.headers['x-user-id'] as string) || 'user_john_1';
   const { conversationId, prompt, courseId, documentId } = req.body;
 
-  if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+  if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > 8000) return res.status(400).json({ error: 'Prompt must be between 1 and 8000 characters' });
 
   let conversation = db.getConversationById(conversationId);
   if (conversation && conversation.userId !== userId) return res.status(404).json({ error: 'Conversation not found' });
