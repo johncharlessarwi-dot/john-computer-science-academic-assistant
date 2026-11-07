@@ -775,6 +775,8 @@ app.get('/api/search', async (req, res) => {
 });
 
 app.get('/api/admin/stats', (req, res) => {
+  const userId = req.headers['x-user-id'] as string;
+  if (db.getUserById(userId)?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
   const users = db.getUsers();
   const docs = db.getDocuments('user_admin_1');
   const courses = db.getCourses('user_admin_1');
