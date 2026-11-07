@@ -519,7 +519,7 @@ app.post('/api/exam/submit', async (req, res) => {
   const { quizId, answers, timeSpentSeconds } = req.body;
 
   const quiz = db.getQuizById(quizId);
-  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+  if (!quiz || quiz.userId !== userId) return res.status(404).json({ error: 'Quiz not found' });
 
   const studentAnswers: StudentAnswer[] = [];
   let totalScoreEarned = 0;
