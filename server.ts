@@ -177,6 +177,7 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
   const course = db.getCourseById(courseId);
   if (!course || course.userId !== userId) { fs.unlinkSync(file.path); return res.status(404).json({ error: 'Course not found' }); }
   const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  if (!['pdf', 'docx', 'pptx', 'txt', 'md', 'png', 'jpg', 'jpeg', 'webp'].includes(ext)) { fs.unlink(file.path, () => {}); return res.status(415).json({ error: 'Unsupported document format' }); }
   let fileType: Document['fileType'] = 'pdf';
   if (ext === 'docx' || ext === 'doc') fileType = 'docx';
   else if (ext === 'pptx' || ext === 'ppt') fileType = 'pptx';
