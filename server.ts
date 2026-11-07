@@ -148,6 +148,9 @@ app.post('/api/courses', (req, res) => {
 });
 
 app.delete('/api/courses/:id', (req, res) => {
+  const userId = req.headers['x-user-id'] as string || 'user_john_1';
+  const course = db.getCourseById(req.params.id);
+  if (!course || course.userId !== userId) return res.status(404).json({ error: 'Course not found' });
   db.deleteCourse(req.params.id);
   return res.json({ success: true });
 });
