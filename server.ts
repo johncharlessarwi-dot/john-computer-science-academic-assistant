@@ -238,6 +238,9 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
 });
 
 app.delete('/api/documents/:id', (req, res) => {
+  const userId = req.headers['x-user-id'] as string || 'user_john_1';
+  const doc = db.getDocuments(userId).find(item => item.id === req.params.id);
+  if (!doc) return res.status(404).json({ error: 'Document not found' });
   db.deleteDocument(req.params.id);
   return res.json({ success: true });
 });
