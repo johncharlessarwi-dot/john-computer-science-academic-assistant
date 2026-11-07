@@ -7,3 +7,4 @@ test('zero budget is empty', () => { assert.equal(limitContextCharacters(['priva
 test('truncate overlong chunk', () => { assert.equal(limitContextCharacters(['abcdef'], 3), 'abc'); });
 test('negative budget rejected', () => { assert.throws(() => limitContextCharacters(['a'], -1), RangeError); });
 test('fractional budget rejected', () => { assert.throws(() => limitContextCharacters(['a'], 1.5), RangeError); });
+test('preserve chunk separator', () => { assert.equal(limitContextCharacters(['one', 'two'], 8), 'one\n\ntwo'); });
