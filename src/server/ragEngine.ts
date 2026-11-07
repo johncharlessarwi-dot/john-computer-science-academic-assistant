@@ -12,7 +12,7 @@ const ai = new GoogleGenAI({
 });
 
 export function computeCosineSimilarity(vecA: number[], vecB: number[]): number {
-  if (vecA.length !== vecB.length || vecA.length === 0) return 0;
+  if (vecA.length !== vecB.length || vecA.length === 0 || !vecA.every(Number.isFinite) || !vecB.every(Number.isFinite)) return 0;
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;
