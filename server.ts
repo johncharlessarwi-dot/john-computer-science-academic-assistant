@@ -399,7 +399,8 @@ app.get('/api/quizzes', (req, res) => {
 
 app.get('/api/quizzes/:id', (req, res) => {
   const quiz = db.getQuizById(req.params.id);
-  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+  const userId = req.headers['x-user-id'] as string || 'user_john_1';
+  if (!quiz || quiz.userId !== userId) return res.status(404).json({ error: 'Quiz not found' });
   return res.json({ quiz });
 });
 
