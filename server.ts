@@ -379,6 +379,9 @@ STRICT ACADEMIC RAG RULES:
 });
 
 app.delete('/api/conversations/:id', (req, res) => {
+  const userId = req.headers['x-user-id'] as string || 'user_john_1';
+  const conversation = db.getConversationById(req.params.id);
+  if (!conversation || conversation.userId !== userId) return res.status(404).json({ error: 'Conversation not found' });
   db.deleteConversation(req.params.id);
   return res.json({ success: true });
 });
