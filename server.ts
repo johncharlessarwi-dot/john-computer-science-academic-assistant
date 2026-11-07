@@ -229,6 +229,7 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
       newDoc.status = 'ready';
       db.saveDocument(newDoc);
     } catch (err: any) {
+      fs.unlink(file.path, () => {});
       console.error('Error processing document:', err);
       newDoc.status = 'failed';
       newDoc.errorMessage = err?.message || 'Extraction failed';
