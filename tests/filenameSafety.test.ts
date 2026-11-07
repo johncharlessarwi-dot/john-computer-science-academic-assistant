@@ -6,3 +6,4 @@ test('filenameSafety behavior', () => { assert.equal(safeAcademicFilename('../le
 test('strip trailing dots', () => { assert.equal(safeAcademicFilename('lecture.pdf...'), 'lecture.pdf'); });
 test('strip trailing whitespace', () => { assert.equal(safeAcademicFilename('notes.pdf '), 'notes.pdf'); });
 test('replace Windows separators', () => { assert.equal(safeAcademicFilename('folder\\notes.pdf'), 'folder_notes.pdf'); });
+test('fallback for empty name', () => { assert.equal(safeAcademicFilename('...'), 'unnamed-document'); });
