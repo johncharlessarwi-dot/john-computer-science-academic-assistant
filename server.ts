@@ -205,6 +205,7 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
   (async () => {
     try {
       const extraction = await extractTextFromFile(file.path, fileType);
+      fs.unlink(file.path, () => {});
       newDoc.pageCount = extraction.pageCount;
       newDoc.status = 'embedding';
       db.saveDocument(newDoc);
