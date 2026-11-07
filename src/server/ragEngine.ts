@@ -89,7 +89,7 @@ export async function searchRelevantChunks(
   });
 
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK);
+  return scored.slice(0, Number.isSafeInteger(topK) ? Math.max(0, Math.min(topK, 20)) : 5);
 }
 
 export function formatContextPrompt(results: RetrievalResult[]): {
