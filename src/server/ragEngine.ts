@@ -34,7 +34,7 @@ export function computeTextSimilarityScore(query: string, text: string): number 
   let exactPhraseBonus = textLower.includes(query.toLowerCase()) ? 0.4 : 0;
 
   queryWords.forEach(word => {
-    if (textLower.includes(word)) {
+    if (new RegExp(`\\b${word}\\b`, 'u').test(textLower)) {
       matches++;
     }
   });
