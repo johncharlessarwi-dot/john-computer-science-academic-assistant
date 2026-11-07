@@ -411,7 +411,8 @@ app.post('/api/quiz/generate', async (req, res) => {
   const userId = (req.headers['x-user-id'] as string) || 'user_john_1';
   const { courseId, documentId, topic, difficulty, numQuestions, questionType } = req.body;
 
-  const count = parseInt(numQuestions) || 5;
+  const requested = Number(numQuestions);
+  const count = Number.isSafeInteger(requested) ? Math.max(1, Math.min(requested, 30)) : 5;
   const chunks = db.getChunks(userId, courseId, documentId);
 
   if (chunks.length === 0) {
