@@ -289,6 +289,7 @@ app.post('/api/chat', async (req, res) => {
   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
   let conversation = db.getConversationById(conversationId);
+  if (conversation && conversation.userId !== userId) return res.status(404).json({ error: 'Conversation not found' });
   if (!conversation) {
     conversation = {
       id: 'conv_' + Date.now(),
