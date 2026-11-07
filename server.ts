@@ -175,6 +175,7 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
   if (!courseId) return res.status(400).json({ error: 'Please select or create a course first.' });
 
   const course = db.getCourseById(courseId);
+  if (!course || course.userId !== userId) { fs.unlinkSync(file.path); return res.status(404).json({ error: 'Course not found' }); }
   const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
   let fileType: Document['fileType'] = 'pdf';
   if (ext === 'docx' || ext === 'doc') fileType = 'docx';
