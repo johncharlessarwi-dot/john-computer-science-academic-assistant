@@ -112,7 +112,7 @@ app.put('/api/auth/profile', (req, res) => {
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   const { name, university, program, year, preferredLevel } = req.body;
-  const updated: User = { ...user, name: typeof name === 'string' ? name : user.name, university: typeof university === 'string' ? university : user.university, program: typeof program === 'string' ? program : user.program, year: typeof year === 'string' ? year : user.year, preferredLevel: typeof preferredLevel === 'string' ? preferredLevel : user.preferredLevel };
+  const updated: User = { ...user, name: typeof name === 'string' ? name : user.name, university: typeof university === 'string' ? university : user.university, program: typeof program === 'string' ? program : user.program, year: typeof year === 'string' ? year : user.year, preferredLevel: ['Beginner', 'Intermediate', 'Advanced', 'University Level'].includes(preferredLevel) ? preferredLevel as User['preferredLevel'] : user.preferredLevel };
   db.saveUser(updated);
   return res.json({ user: updated });
 });
