@@ -89,6 +89,7 @@ export async function searchRelevantChunks(
   });
 
   scored.sort((a, b) => b.score - a.score);
+  const relevant = scored.filter(item => item.score > 0);
   return relevant.slice(0, Number.isSafeInteger(topK) ? Math.max(0, Math.min(topK, 20)) : 5);
 }
 
