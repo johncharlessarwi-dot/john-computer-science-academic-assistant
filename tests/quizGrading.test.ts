@@ -15,3 +15,4 @@ test('keeps empty quiz scoring finite', () => {
   assert.deepEqual(gradeExactAnswers([], []), { correct: 0, total: 0, percent: 0 });
 });
 test('reject nonarray answers', () => { assert.throws(() => gradeExactAnswers(null as unknown as string[], ['A']), TypeError); });
+test('reject nonarray answer key', () => { assert.throws(() => gradeExactAnswers([], null as unknown as string[]), TypeError); });
