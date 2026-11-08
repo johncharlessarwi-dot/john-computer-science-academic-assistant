@@ -236,6 +236,7 @@ export function App() {
         onSearchSubmit={handleSearchSubmit}
       />
 
+      <div className="bg-slate-900 px-4 py-2 text-right"><button className="rounded-md border border-amber-500 px-3 py-1 text-sm text-amber-400" onClick={async()=>{await api.logout();setUser(null);setCourses([]);setDocuments([]);setConversations([]);setQuizzes([]);setExamAttempts([]);setFlashcards([]);setAnalytics(null);}}>Log out securely</button></div>
       {/* Main View Area */}
       <div className="flex-1 flex overflow-hidden">
         <main className="flex-1 overflow-y-auto bg-slate-50">
