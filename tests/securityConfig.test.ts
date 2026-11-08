@@ -11,3 +11,5 @@ test('credential storage and uploads are ignored from version control',()=>{
 });
 
 test('private API parsers enforce bounded body size',()=>{assert.match(server(),/express\\.json\\(\\{ limit: '1mb'/);assert.match(server(),/express\\.urlencoded\\(\\{ extended: false, limit: '64kb'/);});
+
+test('authenticated routes prevent private response caching',()=>{assert.match(server(),/Cache-Control', 'no-store, private'/);});
