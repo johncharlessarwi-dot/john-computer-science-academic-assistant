@@ -4,6 +4,7 @@ import fs from 'fs';
 import { randomUUID } from 'node:crypto';
 import { CredentialRegistry, normalizeEmail } from './src/server/credentialRegistry.js';
 import { SessionStore } from './src/server/sessionSecurity.js';
+import { LoginLimiter } from './src/server/loginLimiter.js';
 import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -28,6 +29,7 @@ const app = express();
 const PORT = 3000;
 const credentials = new CredentialRegistry(path.join(process.cwd(), 'data', 'auth-credentials.json'));
 const sessions = new SessionStore();
+const loginLimiter = new LoginLimiter();
 
 app.use(express.json({ limit: '1mb', strict: true }));
 app.use(express.urlencoded({ extended: false, limit: '64kb' }));
@@ -64,8 +66,11 @@ const ai = new GoogleGenAI({
 app.post('/api/auth/login', async (req, res) => {
   const email = normalizeEmail(req.body?.email);
   if (!email || typeof req.body?.password !== 'string') return res.status(400).json({ error: 'Valid credentials required.' });
+  const attemptKey = String(req.ip || 'unknown') + ':' + email;
+  if (loginLimiter.blocked(attemptKey)) return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
   try {
-    if (!await credentials.authenticate(email, req.body.password)) return res.status(401).json({ error: 'Invalid email or password.' });
+    if (!await credentials.authenticate(email, req.body.password)) { loginLimiter.failure(attemptKey); return res.status(401).json({ error: 'Invalid email or password.' }); }
+    loginLimiter.success(attemptKey);
     const user = db.getUserByEmail(email);
     if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
     const token = sessions.issue(user.id);
