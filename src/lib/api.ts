@@ -22,24 +22,27 @@ export function getCurrentUserId() {
 
 const headers = () => ({
   'Content-Type': 'application/json',
-  'x-user-id': currentUserId,
 });
 
 export const api = {
   // Auth
-  login: async (email: string) => {
+  logout: async () => {
+    const res = await fetch('/api/auth/logout', { method: 'POST', headers: headers() });
+    return res.json();
+  },
+  login: async (email: string, password: string) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, password }),
     });
     return res.json();
   },
-  register: async (userData: Partial<User>) => {
+  register: async (userData: Partial<User>, password: string) => {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
+      body: JSON.stringify({ ...userData, password }),
     });
     return res.json();
   },
@@ -87,7 +90,7 @@ export const api = {
 
     const res = await fetch('/api/documents/upload', {
       method: 'POST',
-      headers: { 'x-user-id': currentUserId },
+      headers: {},
       body: formData,
     });
     return res.json();
