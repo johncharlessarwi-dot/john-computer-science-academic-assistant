@@ -29,8 +29,8 @@ const PORT = 3000;
 const credentials = new CredentialRegistry(path.join(process.cwd(), 'data', 'auth-credentials.json'));
 const sessions = new SessionStore();
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '1mb', strict: true }));
+app.use(express.urlencoded({ extended: false, limit: '64kb' }));
 
 // Setup file uploads directory
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
