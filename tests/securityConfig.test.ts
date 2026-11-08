@@ -25,3 +25,5 @@ test('AI error handler does not interpolate provider secrets',()=>{
 test('login endpoint uses a server-side attempt limiter',()=>{assert.ok(server().includes('loginLimiter.blocked(attemptKey)'));assert.ok(server().includes('loginLimiter.failure(attemptKey)'));});
 
 test('registration endpoints have a server-side rate limit',()=>{assert.ok(server().includes('loginLimiter.blocked(registrationKey)'));assert.ok(server().includes('loginLimiter.failure(registrationKey)'));});
+
+test('auth endpoints reject cross-site requests and mismatched origins',()=>{assert.ok(server().includes("app.use('/api/auth'"));assert.ok(server().includes("req.get('sec-fetch-site') === 'cross-site'"));assert.ok(server().includes("new URL(origin).host !== req.get('host')"));});
