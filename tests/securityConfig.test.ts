@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const server = () => fs.readFileSync('server.ts', 'utf8');
+
+test('credential storage and uploads are ignored from version control',()=>{
+  const rules=fs.readFileSync('.gitignore','utf8');
+  assert.match(rules,/^data\\/\\s*$/m);
+  assert.match(rules,/^uploads\\/\\s*$/m);
+});
