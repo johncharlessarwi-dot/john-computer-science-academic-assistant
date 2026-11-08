@@ -80,6 +80,9 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/register', async (req, res) => {
+  const registrationKey = 'registration:' + String(req.ip || 'unknown');
+  if (loginLimiter.blocked(registrationKey)) return res.status(429).json({ error: 'Too many registrations. Try again later.' });
+  loginLimiter.failure(registrationKey);
   const email = normalizeEmail(req.body?.email);
   const name = req.body?.name;
   if (!email || typeof name !== 'string' || !name.trim() || name.length > 100) return res.status(400).json({ error: 'Valid name and email required.' });
