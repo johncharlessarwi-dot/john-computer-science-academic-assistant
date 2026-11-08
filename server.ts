@@ -89,9 +89,30 @@ app.post('/api/auth/register', async (req, res) => {
   } catch { return res.status(503).json({ error: 'Registration temporarily unavailable.' }); }
 });
 
+function sessionToken(cookieHeader: string | undefined): string | null {
+  if (!cookieHeader || cookieHeader.length > 8192) return null;
+  const item = cookieHeader.split(';').map(part => part.trim()).find(part => part.startsWith('jcsaa_session='));
+  return item ? item.slice('jcsaa_session='.length) : null;
+}
+
+app.use('/api', (req, res, next) => {
+  if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).json({ error: 'Cross-site requests are forbidden.' });
+  const token = sessionToken(req.headers.cookie);
+  const userId = sessions.verify(token);
+  if (!userId || !db.getUserById(userId)) return res.status(401).json({ error: 'Authentication required.' });
+  req.headers['x-user-id'] = userId; // Derived solely from verified server session.
+  next();
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  sessions.revoke(sessionToken(req.headers.cookie));
+  res.clearCookie('jcsaa_session', { path: '/', sameSite: 'strict', secure: process.env.NODE_ENV === 'production', httpOnly: true });
+  return res.json({ success: true });
+});
+
 app.get('/api/auth/me', (req, res) => {
-  const userId = (req.headers['x-user-id'] as string) || 'user_john_1';
-  const user = db.getUserById(userId) || db.getUsers()[0];
+  const userId = req.headers['x-user-id'] as string;
+  const user = db.getUserById(userId);
   return res.json({ user });
 });
 
