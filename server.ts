@@ -373,7 +373,7 @@ STRICT ACADEMIC RAG RULES:
       assistantText = aiRes.text || 'Unable to generate response.';
     } catch (e: any) {
       console.error('AI chat error:', e);
-      assistantText = `I encountered an issue generating the AI response: ${e.message || 'Error'}`;
+      assistantText = 'The AI service is temporarily unavailable. Please try again later.';
     }
   }
 
