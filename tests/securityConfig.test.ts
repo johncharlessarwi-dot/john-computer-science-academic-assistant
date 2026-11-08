@@ -21,3 +21,5 @@ test('authenticated routes prevent private response caching',()=>{
 test('AI error handler does not interpolate provider secrets',()=>{
   assert.ok(!server().includes('assistantText = `I encountered an issue generating the AI response:'));
 });
+
+test('login endpoint uses a server-side attempt limiter',()=>{assert.ok(server().includes('loginLimiter.blocked(attemptKey)'));assert.ok(server().includes('loginLimiter.failure(attemptKey)'));});
