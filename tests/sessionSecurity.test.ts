@@ -10,3 +10,14 @@ test('sessions are unguessable and map to one account',()=>{
   assert.equal(sessions.verify(one),'user_123');
   assert.equal(sessions.verify('forged'),null);
 });
+
+test('expired and revoked sessions cannot authenticate',()=>{
+  let now=1000;
+  const sessions=new SessionStore(1000,()=>now);
+  const token=sessions.issue('user_123');
+  now=2000;
+  assert.equal(sessions.verify(token),null);
+  const newer=sessions.issue('user_123');
+  sessions.revoke(newer);
+  assert.equal(sessions.verify(newer),null);
+});
