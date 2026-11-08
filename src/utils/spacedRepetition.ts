@@ -1,4 +1,5 @@
 export function nextReviewDays(outcome: 'again' | 'hard' | 'good' | 'easy', repetitions: number): number {
+  if (!['again','hard','good','easy'].includes(outcome)) return 1;
   const n = Math.max(0,Math.min(30,Math.trunc(repetitions)));
   if (outcome === 'again') return 1;
   const base = outcome === 'hard' ? 2 : outcome === 'good' ? 3 : 5;
