@@ -1,6 +1,9 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import { randomUUID } from 'node:crypto';
+import { CredentialRegistry, normalizeEmail } from './src/server/credentialRegistry.js';
+import { SessionStore } from './src/server/sessionSecurity.js';
 import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -23,6 +26,8 @@ import {
 
 const app = express();
 const PORT = 3000;
+const credentials = new CredentialRegistry(path.join(process.cwd(), 'data', 'auth-credentials.json'));
+const sessions = new SessionStore();
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -56,48 +61,32 @@ const ai = new GoogleGenAI({
    AUTHENTICATION & PROFILE ENDPOINTS
    ========================================================================== */
 
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email is required.' });
-
-  let user = db.getUserByEmail(email);
-  if (!user) {
-    // Create new student account if not exists for easy onboarding
-    user = {
-      id: 'user_' + Date.now(),
-      name: email.split('@')[0].toUpperCase(),
-      email,
-      university: 'State Tech University',
-      program: 'B.Sc. Computer Science',
-      year: 'Year 3',
-      academicYear: '2025/2026',
-      preferredLevel: 'University Level',
-      role: 'student',
-      createdAt: new Date().toISOString(),
-    };
-    db.saveUser(user);
-  }
-  return res.json({ user });
+app.post('/api/auth/login', async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  if (!email || typeof req.body?.password !== 'string') return res.status(400).json({ error: 'Valid credentials required.' });
+  try {
+    if (!await credentials.authenticate(email, req.body.password)) return res.status(401).json({ error: 'Invalid email or password.' });
+    const user = db.getUserByEmail(email);
+    if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
+    const token = sessions.issue(user.id);
+    res.cookie('jcsaa_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/', maxAge: 8 * 60 * 60 * 1000 });
+    return res.json({ user });
+  } catch { return res.status(503).json({ error: 'Authentication temporarily unavailable.' }); }
 });
 
-app.post('/api/auth/register', (req, res) => {
-  const { name, email, university, program, year, preferredLevel } = req.body;
-  if (!email || !name) return res.status(400).json({ error: 'Name and email are required.' });
-
-  const user: User = {
-    id: 'user_' + Date.now(),
-    name,
-    email,
-    university: university || 'Computer Science Dept',
-    program: program || 'B.Sc. Computer Science',
-    year: year || 'Year 1',
-    academicYear: '2025/2026',
-    preferredLevel: preferredLevel || 'University Level',
-    role: 'student',
-    createdAt: new Date().toISOString(),
-  };
-  db.saveUser(user);
-  return res.json({ user });
+app.post('/api/auth/register', async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const name = req.body?.name;
+  if (!email || typeof name !== 'string' || !name.trim() || name.length > 100) return res.status(400).json({ error: 'Valid name and email required.' });
+  if (db.getUserByEmail(email)) return res.status(409).json({ error: 'Account already exists. Contact support for migration.' });
+  try {
+    if (!await credentials.register(email, req.body?.password)) return res.status(400).json({ error: 'Password must be 12-256 characters without control characters.' });
+    const user: User = { id: 'user_' + randomUUID(), name: name.trim(), email, university: 'Computer Science Dept', program: 'B.Sc. Computer Science', year: 'Year 1', academicYear: '2025/2026', preferredLevel: 'University Level', role: 'student', createdAt: new Date().toISOString() };
+    db.saveUser(user);
+    const token = sessions.issue(user.id);
+    res.cookie('jcsaa_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/', maxAge: 8 * 60 * 60 * 1000 });
+    return res.status(201).json({ user });
+  } catch { return res.status(503).json({ error: 'Registration temporarily unavailable.' }); }
 });
 
 app.get('/api/auth/me', (req, res) => {
