@@ -9,3 +9,5 @@ test('credential storage and uploads are ignored from version control',()=>{
   assert.match(rules,/^data\\/\\s*$/m);
   assert.match(rules,/^uploads\\/\\s*$/m);
 });
+
+test('private API parsers enforce bounded body size',()=>{assert.match(server(),/express\\.json\\(\\{ limit: '1mb'/);assert.match(server(),/express\\.urlencoded\\(\\{ extended: false, limit: '64kb'/);});
