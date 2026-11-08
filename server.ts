@@ -96,6 +96,7 @@ function sessionToken(cookieHeader: string | undefined): string | null {
 }
 
 app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, private');
   if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).json({ error: 'Cross-site requests are forbidden.' });
   const token = sessionToken(req.headers.cookie);
   const userId = sessions.verify(token);
