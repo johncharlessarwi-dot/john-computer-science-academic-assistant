@@ -63,6 +63,16 @@ const ai = new GoogleGenAI({
    AUTHENTICATION & PROFILE ENDPOINTS
    ========================================================================== */
 
+app.use('/api/auth', (req, res, next) => {
+  if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).json({ error: 'Cross-site authentication forbidden.' });
+  const origin = req.get('origin');
+  if (origin) {
+    try { if (new URL(origin).host !== req.get('host')) return res.status(403).json({ error: 'Origin mismatch.' }); }
+    catch { return res.status(403).json({ error: 'Invalid origin.' }); }
+  }
+  next();
+});
+
 app.post('/api/auth/login', async (req, res) => {
   const email = normalizeEmail(req.body?.email);
   if (!email || typeof req.body?.password !== 'string') return res.status(400).json({ error: 'Valid credentials required.' });
