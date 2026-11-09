@@ -27,6 +27,12 @@ import { Search, X, BookOpen, FileText, HelpCircle } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authError, setAuthError] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -186,6 +192,37 @@ export function App() {
     setActiveTab('exam');
   };
 
+  const submitAuth = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setAuthBusy(true);
+    setAuthError('');
+    try {
+      const result = authMode === 'login'
+        ? await api.login(authEmail, authPassword)
+        : await api.register({ name: authName, email: authEmail }, authPassword);
+      if (!result?.user) { setAuthError(result?.error || 'Authentication failed.'); return; }
+      setUser(result.user);
+      setAuthPassword('');
+      await loadInitialData();
+    } catch { setAuthError('Could not reach the authentication server.'); }
+    finally { setAuthBusy(false); }
+  };
+
+  if (!user) return (
+    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
+      <form onSubmit={submitAuth} className="w-full max-w-md rounded-2xl border border-amber-500/40 bg-slate-900 p-8 space-y-4 shadow-xl">
+        <h1 className="text-2xl font-bold text-amber-400">John Academic Assistant</h1>
+        <p className="text-sm text-slate-300">{authMode === 'login' ? 'Sign in securely to access your study data.' : 'Create your student account.'}</p>
+        {authMode === 'register' && <input required maxLength={100} value={authName} onChange={e=>setAuthName(e.target.value)} placeholder="Full name" className="w-full rounded-lg bg-slate-800 border border-slate-700 p-3" />}
+        <input required type="email" autoComplete="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="Email address" className="w-full rounded-lg bg-slate-800 border border-slate-700 p-3" />
+        <input required type="password" minLength={12} maxLength={256} autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder="Password (12+ characters)" className="w-full rounded-lg bg-slate-800 border border-slate-700 p-3" />
+        {authError && <p role="alert" className="text-red-300 text-sm">{authError}</p>}
+        <button disabled={authBusy} className="w-full rounded-lg bg-amber-500 text-black font-semibold p-3 disabled:opacity-50" type="submit">{authBusy ? 'Please wait…' : authMode === 'login' ? 'Log in' : 'Register'}</button>
+        <button type="button" onClick={()=>{setAuthMode(authMode === 'login' ? 'register' : 'login');setAuthError('');}} className="w-full text-sm text-amber-300">{authMode === 'login' ? 'Need an account? Register' : 'Already registered? Log in'}</button>
+      </form>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col">
       {/* Top Header & Navigation Bar */}
@@ -199,6 +236,7 @@ export function App() {
         onSearchSubmit={handleSearchSubmit}
       />
 
+      <div className="bg-slate-900 px-4 py-2 text-right"><button className="rounded-md border border-amber-500 px-3 py-1 text-sm text-amber-400" onClick={async()=>{await api.logout();setUser(null);setCourses([]);setDocuments([]);setConversations([]);setQuizzes([]);setExamAttempts([]);setFlashcards([]);setAnalytics(null);}}>Log out securely</button></div>
       {/* Main View Area */}
       <div className="flex-1 flex overflow-hidden">
         <main className="flex-1 overflow-y-auto bg-slate-50">

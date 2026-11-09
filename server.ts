@@ -1,6 +1,10 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import { randomUUID } from 'node:crypto';
+import { CredentialRegistry, normalizeEmail } from './src/server/credentialRegistry.js';
+import { SessionStore } from './src/server/sessionSecurity.js';
+import { LoginLimiter } from './src/server/loginLimiter.js';
 import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -23,9 +27,12 @@ import {
 
 const app = express();
 const PORT = 3000;
+const credentials = new CredentialRegistry(path.join(process.cwd(), 'data', 'auth-credentials.json'));
+const sessions = new SessionStore();
+const loginLimiter = new LoginLimiter();
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '1mb', strict: true }));
+app.use(express.urlencoded({ extended: false, limit: '64kb' }));
 
 // Setup file uploads directory
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
@@ -56,53 +63,75 @@ const ai = new GoogleGenAI({
    AUTHENTICATION & PROFILE ENDPOINTS
    ========================================================================== */
 
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email is required.' });
-
-  let user = db.getUserByEmail(email);
-  if (!user) {
-    // Create new student account if not exists for easy onboarding
-    user = {
-      id: 'user_' + Date.now(),
-      name: email.split('@')[0].toUpperCase(),
-      email,
-      university: 'State Tech University',
-      program: 'B.Sc. Computer Science',
-      year: 'Year 3',
-      academicYear: '2025/2026',
-      preferredLevel: 'University Level',
-      role: 'student',
-      createdAt: new Date().toISOString(),
-    };
-    db.saveUser(user);
+app.use('/api/auth', (req, res, next) => {
+  if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).json({ error: 'Cross-site authentication forbidden.' });
+  const origin = req.get('origin');
+  if (origin) {
+    try { if (new URL(origin).host !== req.get('host')) return res.status(403).json({ error: 'Origin mismatch.' }); }
+    catch { return res.status(403).json({ error: 'Invalid origin.' }); }
   }
-  return res.json({ user });
+  next();
 });
 
-app.post('/api/auth/register', (req, res) => {
-  const { name, email, university, program, year, preferredLevel } = req.body;
-  if (!email || !name) return res.status(400).json({ error: 'Name and email are required.' });
+app.post('/api/auth/login', async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  if (!email || typeof req.body?.password !== 'string') return res.status(400).json({ error: 'Valid credentials required.' });
+  const attemptKey = String(req.ip || 'unknown') + ':' + email;
+  if (loginLimiter.blocked(attemptKey)) return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+  try {
+    if (!await credentials.authenticate(email, req.body.password)) { loginLimiter.failure(attemptKey); return res.status(401).json({ error: 'Invalid email or password.' }); }
+    loginLimiter.success(attemptKey);
+    const user = db.getUserByEmail(email);
+    if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
+    const token = sessions.issue(user.id);
+    res.cookie('jcsaa_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/', maxAge: 8 * 60 * 60 * 1000 });
+    return res.json({ user });
+  } catch { return res.status(503).json({ error: 'Authentication temporarily unavailable.' }); }
+});
 
-  const user: User = {
-    id: 'user_' + Date.now(),
-    name,
-    email,
-    university: university || 'Computer Science Dept',
-    program: program || 'B.Sc. Computer Science',
-    year: year || 'Year 1',
-    academicYear: '2025/2026',
-    preferredLevel: preferredLevel || 'University Level',
-    role: 'student',
-    createdAt: new Date().toISOString(),
-  };
-  db.saveUser(user);
-  return res.json({ user });
+app.post('/api/auth/register', async (req, res) => {
+  const registrationKey = 'registration:' + String(req.ip || 'unknown');
+  if (loginLimiter.blocked(registrationKey)) return res.status(429).json({ error: 'Too many registrations. Try again later.' });
+  loginLimiter.failure(registrationKey);
+  const email = normalizeEmail(req.body?.email);
+  const name = req.body?.name;
+  if (!email || typeof name !== 'string' || !name.trim() || name.length > 100) return res.status(400).json({ error: 'Valid name and email required.' });
+  if (db.getUserByEmail(email)) return res.status(409).json({ error: 'Account already exists. Contact support for migration.' });
+  try {
+    if (!await credentials.register(email, req.body?.password)) return res.status(400).json({ error: 'Password must be 12-256 characters without control characters.' });
+    const user: User = { id: 'user_' + randomUUID(), name: name.trim(), email, university: 'Computer Science Dept', program: 'B.Sc. Computer Science', year: 'Year 1', academicYear: '2025/2026', preferredLevel: 'University Level', role: 'student', createdAt: new Date().toISOString() };
+    db.saveUser(user);
+    const token = sessions.issue(user.id);
+    res.cookie('jcsaa_session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/', maxAge: 8 * 60 * 60 * 1000 });
+    return res.status(201).json({ user });
+  } catch { return res.status(503).json({ error: 'Registration temporarily unavailable.' }); }
+});
+
+function sessionToken(cookieHeader: string | undefined): string | null {
+  if (!cookieHeader || cookieHeader.length > 8192) return null;
+  const item = cookieHeader.split(';').map(part => part.trim()).find(part => part.startsWith('jcsaa_session='));
+  return item ? item.slice('jcsaa_session='.length) : null;
+}
+
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, private');
+  if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).json({ error: 'Cross-site requests are forbidden.' });
+  const token = sessionToken(req.headers.cookie);
+  const userId = sessions.verify(token);
+  if (!userId || !db.getUserById(userId)) return res.status(401).json({ error: 'Authentication required.' });
+  req.headers['x-user-id'] = userId; // Derived solely from verified server session.
+  next();
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  sessions.revoke(sessionToken(req.headers.cookie));
+  res.clearCookie('jcsaa_session', { path: '/', sameSite: 'strict', secure: process.env.NODE_ENV === 'production', httpOnly: true });
+  return res.json({ success: true });
 });
 
 app.get('/api/auth/me', (req, res) => {
-  const userId = (req.headers['x-user-id'] as string) || 'user_john_1';
-  const user = db.getUserById(userId) || db.getUsers()[0];
+  const userId = req.headers['x-user-id'] as string;
+  const user = db.getUserById(userId);
   return res.json({ user });
 });
 
@@ -362,7 +391,7 @@ STRICT ACADEMIC RAG RULES:
       assistantText = aiRes.text || 'Unable to generate response.';
     } catch (e: any) {
       console.error('AI chat error:', e);
-      assistantText = `I encountered an issue generating the AI response: ${e.message || 'Error'}`;
+      assistantText = 'The AI service is temporarily unavailable. Please try again later.';
     }
   }
 

@@ -16,3 +16,5 @@ test('keeps empty quiz scoring finite', () => {
 });
 test('reject nonarray answers', () => { assert.throws(() => gradeExactAnswers(null as unknown as string[], ['A']), TypeError); });
 test('reject nonarray answer key', () => { assert.throws(() => gradeExactAnswers([], null as unknown as string[]), TypeError); });
+
+test('rejects nontext answers',()=>{assert.throws(()=>gradeExactAnswers([42] as unknown as string[],['42']),TypeError);});
