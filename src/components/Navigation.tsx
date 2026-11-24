@@ -82,6 +82,9 @@ export function Navigation({
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 text-slate-800 px-4 lg:px-6 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center space-x-3">
           <button
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={mobileOpen}
+            aria-controls="academic-navigation"
             onClick={() => setMobileOpen(!mobileOpen)}
             className="lg:hidden p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700"
           >
@@ -142,8 +145,11 @@ export function Navigation({
 
       {/* Sidebar Navigation */}
       <div
+        id="academic-navigation"
+        role="navigation"
+        aria-label="Academic navigation"
         className={`fixed lg:sticky top-[57px] left-0 z-50 lg:z-30 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 h-[calc(100vh-57px)] flex flex-col justify-between transition-transform duration-200 custom-scroll ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          mobileOpen ? 'translate-x-0' : 'invisible -translate-x-full lg:visible lg:translate-x-0'
         }`}
       >
         <div className="p-3 space-y-1 overflow-y-auto custom-scroll">
@@ -156,6 +162,7 @@ export function Navigation({
             return (
               <button
                 key={item.id}
+                aria-current={isActive ? "page" : undefined}
                 onClick={() => handleSelect(item.id as NavTab)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition ${
                   isActive
